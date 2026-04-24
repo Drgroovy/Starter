@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wizard's Tower Explorer</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+
+      body {
+        margin: 0;
+        overflow: hidden;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        background: radial-gradient(circle at top, #0f1f4a, #050815 70%);
+      }
+
+      #overlay {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        max-width: min(22rem, 80vw);
+        padding: 0.8rem 1rem;
+        border: 1px solid #7db3ff66;
+        background: #0b1026aa;
+        color: #d6e7ff;
+        border-radius: 0.75rem;
+        backdrop-filter: blur(6px);
+        line-height: 1.35;
+        z-index: 2;
+      }
+
+      #overlay h1 {
+        margin: 0 0 0.45rem;
+        font-size: 1rem;
+        letter-spacing: 0.03em;
+      }
+
+      #overlay p {
+        margin: 0;
+        font-size: 0.85rem;
+      }
+
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="overlay">
+      <h1>Wizard's Tower Explorer</h1>
+      <p>
+        Left click + drag to rotate • Scroll to zoom • Right click + drag to pan
+      </p>
+    </div>
+
+    <script type="module">
+      import * as THREE from 'https://unpkg.com/three@0.165.0/build/three.module.js';
+      import { OrbitControls } from 'https://unpkg.com/three@0.165.0/examples/jsm/controls/OrbitControls.js';
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x070b1d);
+      scene.fog = new THREE.FogExp2(0x070b1d, 0.025);
+
+      const camera = new THREE.PerspectiveCamera(
+        60,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        350
+      );
+      camera.position.set(14, 9, 14);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      document.body.appendChild(renderer.domElement);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.target.set(0, 6, 0);
+      controls.minDistance = 4;
+      controls.maxDistance = 90;
+      controls.maxPolarAngle = Math.PI * 0.495;
+
+      const ambient = new THREE.AmbientLight(0x8096d9, 0.6);
+      scene.add(ambient);
+
+      const moon = new THREE.DirectionalLight(0xcce0ff, 1.2);
+      moon.position.set(15, 25, 8);
+      moon.castShadow = true;
+      moon.shadow.mapSize.set(2048, 2048);
+      moon.shadow.camera.left = -35;
+      moon.shadow.camera.right = 35;
+      moon.shadow.camera.top = 35;
+      moon.shadow.camera.bottom = -35;
+      scene.add(moon);
+
+      const towerGroup = new THREE.Group();
+      scene.add(towerGroup);
+
+      const stone = new THREE.MeshStandardMaterial({
+        color: 0x7f8391,
+        roughness: 0.82,
+        metalness: 0.08,
+      });
+
+      const darkStone = new THREE.MeshStandardMaterial({
+        color: 0x595e6d,
+        roughness: 0.9,
+      });
+
+      const towerBody = new THREE.Mesh(new THREE.CylinderGeometry(4, 5.2, 13, 32), stone);
+      towerBody.position.y = 6.5;
+      towerBody.castShadow = true;
+      towerBody.receiveShadow = true;
+      towerGroup.add(towerBody);
+
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(6, 6.8, 2.5, 32), darkStone);
+      base.position.y = 1.25;
+      base.castShadow = true;
+      base.receiveShadow = true;
+      towerGroup.add(base);
+
+      const roof = new THREE.Mesh(
+        new THREE.ConeGeometry(4.8, 4.7, 32),
+        new THREE.MeshStandardMaterial({ color: 0x4f1f7a, roughness: 0.5, metalness: 0.15 })
+      );
+      roof.position.y = 15.3;
+      roof.castShadow = true;
+      towerGroup.add(roof);
+
+      const spire = new THREE.Mesh(
+        new THREE.ConeGeometry(0.8, 2.4, 16),
+        new THREE.MeshStandardMaterial({ color: 0xbcd2ff, emissive: 0x334466, roughness: 0.25 })
+      );
+      spire.position.y = 18.6;
+      towerGroup.add(spire);
+
+      const ringMaterial = new THREE.MeshStandardMaterial({ color: 0xa7b7db, roughness: 0.35, metalness: 0.4 });
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(4.45, 0.2, 20, 100), ringMaterial);
+      ring.position.y = 12.6;
+      ring.rotation.x = Math.PI / 2;
+      ring.castShadow = true;
+      towerGroup.add(ring);
+
+      const windowMaterial = new THREE.MeshStandardMaterial({
+        color: 0x88bbff,
+        emissive: 0x3358b0,
+        emissiveIntensity: 1.2,
+      });
+
+      for (let i = 0; i < 7; i += 1) {
+        const angle = (i / 7) * Math.PI * 2;
+        const windowMesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.5, 0.15), windowMaterial);
+        windowMesh.position.set(Math.cos(angle) * 4.02, 7 + (i % 2) * 1.5, Math.sin(angle) * 4.02);
+        windowMesh.lookAt(0, windowMesh.position.y, 0);
+        towerGroup.add(windowMesh);
+      }
+
+      const door = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.9, 0.9, 2.8, 24, 1, false, 0, Math.PI),
+        new THREE.MeshStandardMaterial({ color: 0x2f2220, roughness: 0.95 })
+      );
+      door.rotation.y = Math.PI / 2;
+      door.position.set(4.95, 2.1, 0);
+      door.castShadow = true;
+      towerGroup.add(door);
+
+      const crystal = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.9),
+        new THREE.MeshStandardMaterial({ color: 0x79c6ff, emissive: 0x2d7bc8, emissiveIntensity: 1.3, metalness: 0.3, roughness: 0.2 })
+      );
+      crystal.position.set(0, 10.2, 0);
+      towerGroup.add(crystal);
+
+      const crystalLight = new THREE.PointLight(0x67b4ff, 3.0, 18, 1.7);
+      crystalLight.position.copy(crystal.position);
+      scene.add(crystalLight);
+
+      const ground = new THREE.Mesh(
+        new THREE.CircleGeometry(55, 96),
+        new THREE.MeshStandardMaterial({ color: 0x1c2535, roughness: 1 })
+      );
+      ground.rotation.x = -Math.PI / 2;
+      ground.receiveShadow = true;
+      scene.add(ground);
+
+      const path = new THREE.Mesh(
+        new THREE.RingGeometry(5.5, 8.5, 64),
+        new THREE.MeshStandardMaterial({ color: 0x2f3242, roughness: 0.9 })
+      );
+      path.rotation.x = -Math.PI / 2;
+      path.position.y = 0.02;
+      scene.add(path);
+
+      const stars = new THREE.BufferGeometry();
+      const starCount = 1500;
+      const positions = new Float32Array(starCount * 3);
+      for (let i = 0; i < starCount; i += 1) {
+        const radius = 60 + Math.random() * 180;
+        const theta = Math.random() * Math.PI * 2;
+        const y = 22 + Math.random() * 90;
+        positions[i * 3] = Math.cos(theta) * radius;
+        positions[i * 3 + 1] = y;
+        positions[i * 3 + 2] = Math.sin(theta) * radius;
+      }
+      stars.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const starField = new THREE.Points(
+        stars,
+        new THREE.PointsMaterial({ color: 0xdde7ff, size: 0.45, sizeAttenuation: true })
+      );
+      scene.add(starField);
+
+      const fireflies = [];
+      const fireflyMaterial = new THREE.MeshBasicMaterial({ color: 0x99ddff });
+      for (let i = 0; i < 24; i += 1) {
+        const fly = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), fireflyMaterial);
+        fly.userData = {
+          radius: 4 + Math.random() * 10,
+          speed: 0.2 + Math.random() * 0.7,
+          offset: Math.random() * Math.PI * 2,
+          height: 1.8 + Math.random() * 6,
+        };
+        scene.add(fly);
+        fireflies.push(fly);
+      }
+
+      const clock = new THREE.Clock();
+
+      function animate() {
+        requestAnimationFrame(animate);
+        const t = clock.getElapsedTime();
+
+        roof.rotation.y += 0.0015;
+        ring.rotation.z += 0.002;
+        crystal.rotation.y += 0.01;
+        crystal.position.y = 10.2 + Math.sin(t * 1.5) * 0.15;
+        crystalLight.intensity = 2.6 + Math.sin(t * 2.0) * 0.5;
+
+        fireflies.forEach((fly) => {
+          const { radius, speed, offset, height } = fly.userData;
+          const ang = t * speed + offset;
+          fly.position.set(Math.cos(ang) * radius, height + Math.sin(ang * 2.1) * 0.5, Math.sin(ang) * radius);
+        });
+
+        controls.update();
+        renderer.render(scene, camera);
+      }
+
+      animate();
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    </script>
+  </body>
+</html>
