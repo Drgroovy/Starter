@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PointCast - Halloween</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="desktop" aria-label="Windows 98 Halloween desktop scene">
+      <section class="app-window" aria-label="PointCast Halloween Forecast application">
+        <header class="title-bar">
+          <div class="title-text"><span class="app-glyph" aria-hidden="true"></span>PointCast - Halloween</div>
+          <div class="window-controls" aria-label="Window controls">
+            <button aria-label="Minimize">_</button>
+            <button aria-label="Maximize">□</button>
+            <button aria-label="Close">×</button>
+          </div>
+        </header>
+
+        <nav class="menu-bar" aria-label="Application menu">
+          <button>File</button>
+          <button>Edit</button>
+          <button>View</button>
+          <button>Configure</button>
+          <button>Help</button>
+        </nav>
+
+        <div class="shell">
+          <aside class="sidebar" aria-label="PointCast network navigation">
+            <div class="logo-card">
+              <div class="fake-logo" aria-hidden="true">
+                <span>P</span><span>C</span>
+              </div>
+              <p>Your Personal<br />PointCast Network</p>
+            </div>
+
+            <div class="nav-stack" role="list">
+              <button class="nav-item selected" data-section="Weather" role="listitem">
+                <span class="nav-pixel weather" aria-hidden="true"></span>Weather
+              </button>
+              <button class="nav-item" data-section="News" role="listitem"><span class="nav-pixel paper" aria-hidden="true"></span>News</button>
+              <button class="nav-item" data-section="Sports" role="listitem"><span class="nav-pixel ball" aria-hidden="true"></span>Sports</button>
+              <button class="nav-item" data-section="Entertainment" role="listitem"><span class="nav-pixel star" aria-hidden="true"></span>Entertainment</button>
+              <button class="nav-item" data-section="Finance" role="listitem"><span class="nav-pixel coin" aria-hidden="true"></span>Finance</button>
+              <button class="nav-item" data-section="Lifestyle" role="listitem"><span class="nav-pixel leaf" aria-hidden="true"></span>Lifestyle</button>
+              <button class="nav-item" data-section="Fun & Games" role="listitem"><span class="nav-pixel ghost" aria-hidden="true"></span>Fun & Games</button>
+              <button class="nav-item" data-section="Travel" role="listitem"><span class="nav-pixel map" aria-hidden="true"></span>Travel</button>
+              <button class="nav-item" data-section="Shopping" role="listitem"><span class="nav-pixel bag" aria-hidden="true"></span>Shopping</button>
+              <button class="nav-item" data-section="Desktop" role="listitem"><span class="nav-pixel monitor" aria-hidden="true"></span>Desktop</button>
+            </div>
+          </aside>
+
+          <section class="content-panel">
+            <div class="content-topline">
+              <h1>HALLOWEEN FORECAST</h1>
+              <time datetime="1998-10-31T23:30">Oct 31, 1998 — 11:30 PM</time>
+            </div>
+
+            <div class="hero-scene" aria-label="Pixel art Halloween night with haunted house, moon, bats, and spooky landscape">
+              <div class="moon"></div>
+              <div class="bat bat-one"><span></span></div>
+              <div class="bat bat-two"><span></span></div>
+              <div class="bat bat-three"><span></span></div>
+              <div class="cloud cloud-one"></div>
+              <div class="cloud cloud-two"></div>
+              <div class="dead-tree"><span></span><i></i><b></b></div>
+              <div class="house">
+                <div class="roof roof-left"></div>
+                <div class="roof roof-main"></div>
+                <div class="tower"></div>
+                <div class="chimney"></div>
+                <div class="window w1"></div>
+                <div class="window w2"></div>
+                <div class="window w3"></div>
+                <div class="door"></div>
+              </div>
+              <div class="graveyard"><span></span><span></span><span></span></div>
+              <article class="weather-card">
+                <div class="card-label">TONIGHT</div>
+                <div class="pumpkin-icon" aria-hidden="true"><span></span><i></i><b></b></div>
+                <div class="temperature">48°</div>
+                <div class="condition">Partly Cloudy</div>
+                <div class="mood">Cool and Spooky</div>
+                <div class="winds">Winds: NE 10–15 mph</div>
+              </article>
+              <div class="ground"></div>
+            </div>
+
+            <section class="forecast-panel" aria-label="Five-night forecast">
+              <h2>5-Night Local Outlook</h2>
+              <div class="forecast-grid">
+                <div class="day-card"><strong>SAT</strong><span class="mini-icon moon-cloud"></span><em>52°</em></div>
+                <div class="day-card"><strong>SUN</strong><span class="mini-icon full-moon"></span><em>54°</em></div>
+                <div class="day-card"><strong>MON</strong><span class="mini-icon rain"></span><em>49°</em></div>
+                <div class="day-card"><strong>TUE</strong><span class="mini-icon cloud-moon"></span><em>47°</em></div>
+                <div class="day-card"><strong>WED</strong><span class="mini-icon full-moon small"></span><em>46°</em></div>
+              </div>
+            </section>
+
+            <section class="tile-panel" aria-label="Halloween features">
+              <button class="feature-tile" data-message="Trick-or-treat route planner loaded. Remember the reflective tape!"><span class="tile-icon candy"></span>Trick or Treat</button>
+              <button class="feature-tile" data-message="Haunted Places: 13 eerie local legends queued for download."><span class="tile-icon mansion"></span>Haunted Places</button>
+              <button class="feature-tile" data-message="Scary Stories: Midnight modem tales now available."><span class="tile-icon book"></span>Scary Stories</button>
+              <button class="feature-tile" data-message="Halloween Sounds: Thunder.wav, CreakyDoor.wav, and WolfHowl.wav ready."><span class="tile-icon speaker"></span>Halloween Sounds</button>
+              <button class="feature-tile" data-message="NEW! Send Halloween E-Cards to your friends and family!"><span class="tile-icon card"></span>E-Cards</button>
+              <button class="feature-tile" data-message="Costume Ideas: Vampire newscaster, dial-up wizard, pumpkin astronaut."><span class="tile-icon mask"></span>Costume Ideas</button>
+            </section>
+          </section>
+        </div>
+
+        <footer class="status-area">
+          <div class="ticker" aria-live="polite"><span id="tickerText">NEW! Send Halloween E-Cards to your friends and family!</span></div>
+          <div class="loading-row">
+            <div class="progress-wrap" aria-label="Update progress"><div class="progress-bar"></div></div>
+            <span class="update-text">Updating Halloween Forecast…</span>
+            <span class="connected"><i aria-hidden="true"></i>Connected</span>
+          </div>
+        </footer>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
