@@ -1,0 +1,66 @@
+[
+  {
+    "id": "hotel",
+    "label": "Return to Hotel",
+    "destination": "Hotel Code Shinsaibashi, Osaka, Japan",
+    "category": "hotel",
+    "defaultTravelMode": "walking",
+    "notes": "Home base. Return here when tired, lost, or done being brave."
+  },
+  {
+    "id": "osaka-castle",
+    "label": "Osaka Castle",
+    "destination": "Osaka Castle, Osaka, Japan",
+    "category": "landmark",
+    "defaultTravelMode": "transit",
+    "notes": "Big castle energy."
+  },
+  {
+    "id": "edion-arena",
+    "label": "Edion Arena",
+    "destination": "Edion Arena Osaka, Osaka, Japan",
+    "category": "sumo",
+    "defaultTravelMode": "walking",
+    "notes": "Sumo pilgrimage site."
+  },
+  {
+    "id": "dotonbori",
+    "label": "Dotonbori",
+    "destination": "Dotonbori, Osaka, Japan",
+    "category": "food",
+    "defaultTravelMode": "walking",
+    "notes": "Neon, snacks, giant signs, controlled nonsense."
+  },
+  {
+    "id": "namba-station",
+    "label": "Namba Station",
+    "destination": "Namba Station, Osaka, Japan",
+    "category": "transit",
+    "defaultTravelMode": "walking",
+    "notes": "Transit anchor."
+  },
+  {
+    "id": "kuromon",
+    "label": "Kuromon Market",
+    "destination": "Kuromon Ichiba Market, Osaka, Japan",
+    "category": "food",
+    "defaultTravelMode": "walking",
+    "notes": "Snack browsing."
+  },
+  {
+    "id": "shin-osaka",
+    "label": "Shin-Osaka Station",
+    "destination": "Shin-Osaka Station, Osaka, Japan",
+    "category": "transit",
+    "defaultTravelMode": "transit",
+    "notes": "Bullet train portal."
+  },
+  {
+    "id": "kix",
+    "label": "Kansai International Airport",
+    "destination": "Kansai International Airport, Osaka, Japan",
+    "category": "transit",
+    "defaultTravelMode": "transit",
+    "notes": "Escape hatch."
+  }
+]
