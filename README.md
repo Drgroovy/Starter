@@ -13,6 +13,7 @@ while editable starter content lives in `public/data`.
 - Saved Google Map and direction launcher
 - Searchable phrasebook with 100+ starter Japanese phrases
 - Local-device saving for favorites, checklists, budget, and journal entries
+- Separate `/packing` checklist route for pre-flight packing
 - Dark dashboard styling with teal and warm orange accents
 
 ## Commands
@@ -29,6 +30,7 @@ The local dev server will print a localhost URL, usually `http://localhost:3000`
 ## Source Shape
 
 - `app/page.tsx`: travel app UI and client-side interactions
+- `app/packing/page.tsx`: separate packing checklist route
 - `app/globals.css`: mobile-first visual system
 - `public/data/phrases.json`: editable Japanese phrasebook
 - `public/data/places.json`: editable Osaka destination buttons
