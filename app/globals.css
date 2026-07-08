@@ -38,6 +38,17 @@ body {
     sans-serif;
 }
 
+.phrase-card,
+.modal-card {
+  font-family:
+    "Hiragino Sans",
+    "Yu Gothic",
+    Meiryo,
+    "Noto Sans JP",
+    system-ui,
+    sans-serif;
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -539,7 +550,7 @@ textarea {
 
 .phrase-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(112px, 1fr));
   gap: 8px;
 }
 
