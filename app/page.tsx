@@ -31,15 +31,6 @@ type Food = {
   search: string;
 };
 
-type Expense = {
-  id: string;
-  category: string;
-  yen: number;
-  usd: number;
-  notes: string;
-  date: string;
-};
-
 type JournalEntry = {
   id: string;
   date: string;
@@ -49,29 +40,39 @@ type JournalEntry = {
   notes: string;
 };
 
+type RatePoint = {
+  date: string;
+  rate: number;
+};
+
+type RateCache = {
+  points: RatePoint[];
+  updated: string;
+};
+
 const APP_CONFIG = {
   tripName: "A Groovy and Stupid Trip to Osaka",
-  travelers: ["Groovy", "Stupid"],
   hotelName: "Hotel Code Shinsaibashi",
   hotelAddressEnglish: "Hotel Code Shinsaibashi, Osaka, Japan",
-  hotelAddressJapanese: "ホテルコード心斎橋 大阪 日本",
+  hotelAddressJapanese: "\u30db\u30c6\u30eb\u30b3\u30fc\u30c9\u5fc3\u658e\u6a4b \u5927\u962a \u65e5\u672c",
   hotelPhone: "Add hotel phone",
   savedGoogleMapUrl:
     "https://www.google.com/maps/d/edit?mid=1tXATlMWovoMcwuU6AhvkeRwZNcTQxw0&ll=34.64877085835829%2C135.53980695000004&z=11",
-  defaultMapTravelMode: "walking",
-  defaultCity: "Osaka, Japan",
 };
 
+const IDENTIFY_APP_URL = "https://im.stuped.net/japan_shop/";
+const RATE_CACHE_KEY = "osaka-usd-jpy-rates";
+
 const navTiles = [
-  ["weather", "Weather Radar", "Live-ish umbrella logic and radar launch.", "☂"],
-  ["map", "Groovy Map", "Saved map, directions, bathrooms, food roulette.", "⌖"],
-  ["phrases", "Stupid Words to Say", "Phrasebook with big-screen rescue mode.", "あ"],
-  ["identify", "What the Fuck Is This Thing?", "Camera placeholder for confusing objects.", "?"],
-  ["food", "Food Quest", "Track the sacred snack checklist.", "◉"],
-  ["sumo", "Sumo Days", "Arena plan, etiquette, phrases, and checklist.", "力"],
-  ["budget", "Budget Tracker", "Yen totals without spreadsheet suffering.", "¥"],
-  ["packing", "Packing List", "Do not forget the important machines.", "✓"],
-  ["journal", "Daily Journal", "Remember the excellent nonsense.", "✎"],
+  ["weather", "Weather Radar", "Live-ish umbrella logic and radar launch.", "WX"],
+  ["map", "Groovy Map", "Saved map, directions, bathrooms, food roulette.", "MAP"],
+  ["phrases", "Stupid Words to Say", "Phrasebook with big-screen rescue mode.", "JP"],
+  ["identify", "What the Fuck Is This Thing?", "The shop app inset in this page.", "?"],
+  ["food", "Food Quest", "Track the sacred snack checklist.", "FOOD"],
+  ["sumo", "Sumo Days", "Arena plan, etiquette, phrases, and checklist.", "SUMO"],
+  ["budget", "Yen to USD", "Tiny live rate check and conversion.", "JPY"],
+  ["/packing", "Packing List", "Separate pre-flight checklist page.", "PACK"],
+  ["journal", "Daily Journal", "Remember the excellent nonsense.", "LOG"],
   ["emergency", "Emergency Information", "Hotel, numbers, and stress buttons.", "!"],
 ];
 
@@ -96,22 +97,7 @@ const foods: Food[] = [
   ["taiyaki", "Taiyaki", "Fish-shaped pastry with filling.", "Cute snack technology.", "taiyaki near me"],
   ["gyoza", "Gyoza", "Pan-fried dumplings.", "Always a correct side quest.", "gyoza near me"],
   ["mystery-drink", "Mystery vending machine drink", "Unknown beverage from a glowing machine.", "Because curiosity must pay rent.", "vending machine drinks near me"],
-].map(([id, name, description, why, search]) => ({
-  id,
-  name,
-  description,
-  why,
-  search,
-}));
-
-const packingGroups = {
-  Documents: ["Passport", "Flight info", "Hotel info", "Travel insurance", "Medication list"],
-  Money: ["Cash yen", "Credit card", "Debit card", "Coin pouch", "ATM backup plan"],
-  Medication: ["Daily medications", "CPAP", "CPAP power supply", "CPAP mask", "CPAP letter if needed"],
-  Tech: ["Phone", "Charger", "Power bank", "Charging cable", "Plug adapter", "eSIM info", "Headphones"],
-  "Daily Carry": ["Wallet", "Passport copy", "Battery pack", "Sunglasses", "Small trash bag", "Foldable shopping bag", "Hand sanitizer"],
-  "Weather Gear": ["Compact umbrella", "Light jacket", "Comfortable shoes", "Blister patches"],
-};
+].map(([id, name, description, why, search]) => ({ id, name, description, why, search }));
 
 const sumoChecklist = [
   "Tickets",
@@ -120,18 +106,17 @@ const sumoChecklist = [
   "Camera",
   "Snacks",
   "Train route checked",
-  "Merchandise budget",
+  "Merchandise cash",
 ];
 
-const categories = [
-  "Food",
-  "Drinks",
-  "Train",
-  "Sumo",
-  "Souvenirs",
-  "Convenience store",
-  "Emergency",
-  "Other",
+const fallbackRatePoints: RatePoint[] = [
+  { date: "Offline -6", rate: 160 },
+  { date: "Offline -5", rate: 159.6 },
+  { date: "Offline -4", rate: 159.9 },
+  { date: "Offline -3", rate: 160.3 },
+  { date: "Offline -2", rate: 160.1 },
+  { date: "Offline -1", rate: 160.5 },
+  { date: "Offline", rate: 160.2 },
 ];
 
 function useLocalState<T>(key: string, initialValue: T) {
@@ -149,13 +134,23 @@ function useLocalState<T>(key: string, initialValue: T) {
 }
 
 function mapDirections(destination: string, mode = "walking") {
-  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-    destination,
-  )}&travelmode=${mode}`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=${mode}`;
 }
 
 function mapSearch(query: string) {
   return `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
+}
+
+function gpsMapSearch(query: string, latitude: number, longitude: number, zoom = 16) {
+  return `https://www.google.com/maps/search/${encodeURIComponent(query)}/@${latitude},${longitude},${zoom}z`;
+}
+
+function formatMoney(value: number, currency: "USD" | "JPY") {
+  return new Intl.NumberFormat("en-US", {
+    currency,
+    maximumFractionDigits: currency === "JPY" ? 0 : 2,
+    style: "currency",
+  }).format(value);
 }
 
 export default function Home() {
@@ -165,34 +160,86 @@ export default function Home() {
   const [bigPhrase, setBigPhrase] = useState<Phrase | null>(null);
   const [favorites, setFavorites] = useLocalState<string[]>("osaka-favorite-phrases", []);
   const [foodDone, setFoodDone] = useLocalState<Record<string, boolean>>("osaka-food-done", {});
-  const [packingDone, setPackingDone] = useLocalState<Record<string, boolean>>("osaka-packing-done", {});
   const [sumoDone, setSumoDone] = useLocalState<Record<string, boolean>>("osaka-sumo-done", {});
-  const [expenses, setExpenses] = useLocalState<Expense[]>("osaka-expenses", []);
   const [journalEntries, setJournalEntries] = useLocalState<JournalEntry[]>("osaka-journal", []);
-  const [rate, setRate] = useLocalState("osaka-rate", "155");
   const [destination, setDestination] = useState("");
   const [travelMode, setTravelMode] = useState("walking");
   const [foodPick, setFoodPick] = useState("Surprise Me");
+  const [foodLocationStatus, setFoodLocationStatus] = useState("Uses your phone location when allowed.");
   const [copied, setCopied] = useState("");
+  const [ratePoints, setRatePoints] = useState<RatePoint[]>(fallbackRatePoints);
+  const [rateStatus, setRateStatus] = useState("Loading latest rate...");
+  const [usdAmount, setUsdAmount] = useState("100");
+  const [yenAmount, setYenAmount] = useState(String(Math.round(100 * fallbackRatePoints.at(-1)!.rate)));
+  const [manualRate, setManualRate] = useState(String(fallbackRatePoints.at(-1)!.rate));
 
   useEffect(() => {
     fetch("/data/phrases.json").then((response) => response.json()).then(setPhrases);
     fetch("/data/places.json").then((response) => response.json()).then(setPlaces);
   }, []);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    const today = new Date();
+    const start = new Date(today);
+    start.setDate(today.getDate() - 7);
+    const toDate = today.toISOString().slice(0, 10);
+    const fromDate = start.toISOString().slice(0, 10);
+
+    async function loadRates() {
+      let cached: RateCache | null = null;
+      const cachedText = window.localStorage.getItem(RATE_CACHE_KEY);
+      if (cachedText) {
+        cached = JSON.parse(cachedText) as RateCache;
+        if (cached.points?.length) {
+          const cachedRate = cached.points.at(-1)!.rate;
+          setRatePoints(cached.points);
+          setManualRate(cachedRate.toFixed(2));
+          setYenAmount(String(Math.round(100 * cachedRate)));
+          setRateStatus(`Last cached: ${cached.updated}`);
+        }
+      }
+
+      try {
+        const [latestResponse, historyResponse] = await Promise.all([
+          fetch("https://api.frankfurter.dev/v2/rate/USD/JPY", { signal: controller.signal }),
+          fetch(`https://api.frankfurter.dev/v2/rates?base=USD&quotes=JPY&from=${fromDate}&to=${toDate}`, { signal: controller.signal }),
+        ]);
+        if (!latestResponse.ok || !historyResponse.ok) throw new Error("Rate API unavailable");
+        const latest = await latestResponse.json();
+        const history = await historyResponse.json();
+        const points = Object.entries(history.rates ?? {})
+          .map(([date, values]) => ({ date, rate: Number((values as { JPY?: number }).JPY) }))
+          .filter((point) => Number.isFinite(point.rate))
+          .slice(-7);
+        const latestRate = Number(latest.rate);
+        const nextPoints = points.length ? points : [{ date: latest.date ?? toDate, rate: latestRate }];
+        const updated = latest.date ?? nextPoints.at(-1)?.date ?? toDate;
+        setRatePoints(nextPoints);
+        setManualRate(latestRate.toFixed(2));
+        setUsdAmount("100");
+        setYenAmount(String(Math.round(100 * latestRate)));
+        setRateStatus(`Latest available: ${updated}`);
+        window.localStorage.setItem(RATE_CACHE_KEY, JSON.stringify({ points: nextPoints, updated }));
+      } catch {
+        if (!cached?.points?.length) {
+          setRatePoints(fallbackRatePoints);
+          setRateStatus("Live rates unavailable. Enter a manual rate below.");
+        }
+      }
+    }
+
+    loadRates();
+    return () => controller.abort();
+  }, []);
+
+  const latestRate = ratePoints.at(-1)?.rate ?? fallbackRatePoints.at(-1)!.rate;
   const favoritePhrases = phrases.filter((phrase) => favorites.includes(phrase.id));
   const filteredPhrases = useMemo(() => {
     const source = phraseQuery.trim().toLowerCase();
     if (!source) return phrases;
     return phrases.filter((phrase) =>
-      [
-        phrase.english,
-        phrase.japanese,
-        phrase.romaji,
-        phrase.easyPronunciation,
-        phrase.category,
-        phrase.tags.join(" "),
-      ]
+      [phrase.english, phrase.japanese, phrase.romaji, phrase.easyPronunciation, phrase.category, phrase.tags.join(" ")]
         .join(" ")
         .toLowerCase()
         .includes(source),
@@ -206,30 +253,9 @@ export default function Home() {
     }, {});
   }, [filteredPhrases]);
 
-  const expenseTotal = expenses.reduce((total, expense) => total + Number(expense.yen || 0), 0);
-
   function submitDirections(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (destination.trim()) window.open(mapDirections(destination, travelMode), "_blank");
-  }
-
-  function addExpense(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const yen = Number(form.get("yen") || 0);
-    if (!yen) return;
-    setExpenses([
-      {
-        id: crypto.randomUUID(),
-        category: String(form.get("category")),
-        yen,
-        usd: Number((yen / Number(rate || 155)).toFixed(2)),
-        notes: String(form.get("notes") || ""),
-        date: new Date().toISOString().slice(0, 10),
-      },
-      ...expenses,
-    ]);
-    event.currentTarget.reset();
   }
 
   function addJournal(event: FormEvent<HTMLFormElement>) {
@@ -255,22 +281,57 @@ export default function Home() {
     window.setTimeout(() => setCopied(""), 1400);
   }
 
-  function openBathroomSearch(query = "public toilet near Namba Osaka") {
+  function openBathroomSearch(query = "public toilet near me") {
     if (!navigator.geolocation) {
       window.open(mapSearch(query), "_blank");
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) => window.open(`https://www.google.com/maps/search/public+toilet/@${coords.latitude},${coords.longitude},17z`, "_blank"),
+      ({ coords }) => window.open(gpsMapSearch("public toilet", coords.latitude, coords.longitude, 17), "_blank"),
       () => window.open(mapSearch(query), "_blank"),
-      { enableHighAccuracy: false, timeout: 3500 },
+      { enableHighAccuracy: true, maximumAge: 60000, timeout: 6500 },
     );
   }
 
   function pickFood() {
     const options = ["ramen", "sushi", "curry", "kushikatsu", "okonomiyaki", "izakaya", "cheap eats", "spicy food"];
     const selected = foodPick === "Surprise Me" ? options[Math.floor(Math.random() * options.length)] : foodPick;
-    window.open(mapSearch(`${selected} near me Osaka`), "_blank");
+    setFoodLocationStatus("Asking your phone for GPS...");
+    if (!navigator.geolocation) {
+      setFoodLocationStatus("GPS unavailable. Searching near your current map area.");
+      window.open(mapSearch(`${selected} near me`), "_blank");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setFoodLocationStatus(`Searching within your GPS area: ${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`);
+        window.open(gpsMapSearch(`${selected} restaurant`, coords.latitude, coords.longitude, 16), "_blank");
+      },
+      () => {
+        setFoodLocationStatus("Location permission was blocked. Searching near you without locking to Osaka.");
+        window.open(mapSearch(`${selected} near me`), "_blank");
+      },
+      { enableHighAccuracy: true, maximumAge: 60000, timeout: 6500 },
+    );
+  }
+
+  function changeUsd(value: string) {
+    setUsdAmount(value);
+    setYenAmount(value ? String(Math.round(Number(value) * latestRate)) : "");
+  }
+
+  function changeYen(value: string) {
+    setYenAmount(value);
+    setUsdAmount(value ? (Number(value) / latestRate).toFixed(2) : "");
+  }
+
+  function changeManualRate(value: string) {
+    setManualRate(value);
+    const nextRate = Number(value);
+    if (!Number.isFinite(nextRate) || nextRate <= 0) return;
+    setRatePoints([{ date: "Manual", rate: nextRate }]);
+    setYenAmount(usdAmount ? String(Math.round(Number(usdAmount) * nextRate)) : "");
+    setRateStatus("Manual rate in use.");
   }
 
   return (
@@ -286,9 +347,9 @@ export default function Home() {
       <section className="hero">
         <div className="hero-art" aria-label="CSS illustration of Osaka at night">
           <div className="moon" />
-          <div className="sign sign-one">たこ</div>
+          <div className="sign sign-one">{"\u305f\u3053"}</div>
           <div className="sign sign-two">OSAKA</div>
-          <div className="sign sign-three">ラーメン</div>
+          <div className="sign sign-three">{"\u30e9\u30fc\u30e1\u30f3"}</div>
           <div className="river" />
           <div className="skyline" />
         </div>
@@ -304,7 +365,7 @@ export default function Home() {
 
       <section className="nav-grid" aria-label="Travel tools">
         {navTiles.map(([href, title, description, icon]) => (
-          <a className="tool-tile" href={`#${href}`} key={href}>
+          <a className="tool-tile" href={href.startsWith("/") ? href : `#${href}`} key={href}>
             <span className="tile-icon">{icon}</span>
             <strong>{title}</strong>
             <small>{description}</small>
@@ -347,7 +408,7 @@ export default function Home() {
         <div className="button-row">
           <button className="button danger" onClick={() => openBathroomSearch()} type="button">Bathroom Finder</button>
           <a className="button secondary" href={mapSearch("convenience stores near me")} target="_blank" rel="noreferrer">Convenience Stores</a>
-          <a className="button secondary" href={mapSearch("department stores near me Osaka")} target="_blank" rel="noreferrer">Department Stores</a>
+          <a className="button secondary" href={mapSearch("department stores near me")} target="_blank" rel="noreferrer">Department Stores</a>
         </div>
         <div className="food-picker">
           <label htmlFor="foodPick">Where Should We Eat?</label>
@@ -356,7 +417,8 @@ export default function Home() {
               <option key={option}>{option}</option>
             ))}
           </select>
-          <button className="button" onClick={pickFood} type="button">Pick Food Nearby</button>
+          <button className="button" onClick={pickFood} type="button">Use GPS and Pick Food Nearby</button>
+          <small className="status-note">{foodLocationStatus}</small>
         </div>
       </ToolSection>
 
@@ -364,19 +426,18 @@ export default function Home() {
         <input className="search" value={phraseQuery} onChange={(event) => setPhraseQuery(event.target.value)} placeholder="Search bathroom, beer, ticket, spicy, help..." />
         {copied && <p className="toast">{copied} copied.</p>}
         {favoritePhrases.length > 0 && (
-          <PhraseGroup title="Favorites" phrases={favoritePhrases} favorites={favorites} setFavorites={setFavorites} setBigPhrase={setBigPhrase} copyText={copyText} />
+          <PhraseGroup title="Favorites" phrases={favoritePhrases} favorites={favorites} setFavorites={setFavorites} setBigPhrase={setBigPhrase} />
         )}
         {Object.entries(groupedPhrases).map(([category, items]) => (
-          <PhraseGroup title={category} phrases={items} favorites={favorites} key={category} setFavorites={setFavorites} setBigPhrase={setBigPhrase} copyText={copyText} />
+          <PhraseGroup title={category} phrases={items} favorites={favorites} key={category} setFavorites={setFavorites} setBigPhrase={setBigPhrase} />
         ))}
       </ToolSection>
 
-      <ToolSection id="identify" title="What the Fuck Is This Thing?" description="A future photo-identification station for confusing objects, signs, snacks, shrines, and alleged foods.">
-        <div className="upload-placeholder">
-          <span>?</span>
-          <p>Camera and upload interface placeholder. Later this can connect to a vision API and answer: should I touch it, eat it, bow to it, or flee politely?</p>
-          <a className="button" href="#home">Open App Placeholder</a>
+      <ToolSection id="identify" title="What the Fuck Is This Thing?" description="Inset version of the object and shopping helper app.">
+        <div className="inset-app">
+          <iframe title="Japan shop helper app" src={IDENTIFY_APP_URL} loading="lazy" sandbox="allow-forms allow-popups allow-popups-to-escape-sandbox allow-scripts allow-same-origin" />
         </div>
+        <a className="button full" href={IDENTIFY_APP_URL} target="_blank" rel="noreferrer">Open Full Screen</a>
       </ToolSection>
 
       <ToolSection id="food" title="Food Quest" description="Track the Osaka food list. Local saves stay on this phone.">
@@ -405,34 +466,24 @@ export default function Home() {
         <Checklist items={sumoChecklist} done={sumoDone} setDone={setSumoDone} />
       </ToolSection>
 
-      <ToolSection id="budget" title="Budget Tracker" description="Manual yen tracking with a flexible exchange-rate field.">
-        <label className="inline-label">Yen per USD <input value={rate} onChange={(event) => setRate(event.target.value)} inputMode="decimal" /></label>
-        <form className="stack-form" onSubmit={addExpense}>
-          <select name="category">{categories.map((category) => <option key={category}>{category}</option>)}</select>
-          <input name="yen" inputMode="numeric" placeholder="Amount in yen" />
-          <input name="notes" placeholder="Notes" />
-          <button className="button" type="submit">Add Expense</button>
-        </form>
-        <div className="total-card">
-          <strong>Trip total</strong>
-          <span>¥{expenseTotal.toLocaleString()} / ${Number(expenseTotal / Number(rate || 155)).toFixed(2)}</span>
-        </div>
-        {expenses.map((expense) => (
-          <div className="expense-row" key={expense.id}>
-            <span>{expense.category}</span>
-            <strong>¥{expense.yen.toLocaleString()}</strong>
-            <small>{expense.notes}</small>
+      <ToolSection id="budget" title="Yen to USD Calculator" description="Latest available USD to JPY rate with a one-week trend.">
+        <div className="currency-card">
+          <div>
+            <span className="eyebrow">USD to JPY</span>
+            <strong>1 USD = {latestRate.toFixed(2)} JPY</strong>
+            <small>{rateStatus}</small>
           </div>
-        ))}
-      </ToolSection>
-
-      <ToolSection id="packing" title="Packing List" description="The pre-flight ritual, saved on this device.">
-        {Object.entries(packingGroups).map(([group, items]) => (
-          <details className="details-card" key={group} open>
-            <summary>{group}</summary>
-            <Checklist items={items} done={packingDone} prefix={group} setDone={setPackingDone} />
-          </details>
-        ))}
+          <RateChart points={ratePoints} />
+        </div>
+        <div className="converter-grid">
+          <label>USD <input value={usdAmount} onChange={(event) => changeUsd(event.target.value)} inputMode="decimal" /></label>
+          <label>JPY <input value={yenAmount} onChange={(event) => changeYen(event.target.value)} inputMode="numeric" /></label>
+          <label>Manual JPY per USD <input value={manualRate} onChange={(event) => changeManualRate(event.target.value)} inputMode="decimal" /></label>
+        </div>
+        <div className="total-card">
+          <strong>Quick read</strong>
+          <span>{formatMoney(Number(yenAmount || 0), "JPY")} is about {formatMoney(Number(usdAmount || 0), "USD")}</span>
+        </div>
       </ToolSection>
 
       <ToolSection id="journal" title="Daily Journal" description="Tiny memory trap for food, weather, weirdness, and victory notes.">
@@ -447,7 +498,7 @@ export default function Home() {
         <button className="button secondary" onClick={() => copyText("Journal export", JSON.stringify(journalEntries, null, 2))} type="button">Export JSON</button>
         {journalEntries.map((entry) => (
           <article className="mini-card" key={entry.id}>
-            <strong>{entry.date} · {entry.mood}</strong>
+            <strong>{entry.date} - {entry.mood}</strong>
             <small>{entry.bestFood && `Best food: ${entry.bestFood}`}</small>
             <p>{entry.notes}</p>
           </article>
@@ -500,13 +551,12 @@ function ToolSection({ id, title, description, children }: { id: string; title: 
   );
 }
 
-function PhraseGroup({ title, phrases, favorites, setFavorites, setBigPhrase, copyText }: {
+function PhraseGroup({ title, phrases, favorites, setFavorites, setBigPhrase }: {
   title: string;
   phrases: Phrase[];
   favorites: string[];
   setFavorites: (favorites: string[]) => void;
   setBigPhrase: (phrase: Phrase) => void;
-  copyText: (label: string, text: string) => void;
 }) {
   return (
     <details className="details-card phrase-details" open={title === "Favorites" || title === "Survival Basics"}>
@@ -524,8 +574,6 @@ function PhraseGroup({ title, phrases, favorites, setFavorites, setBigPhrase, co
                 <small>{phrase.note}</small>
               </div>
               <div className="phrase-actions">
-                <button onClick={() => copyText("Japanese", phrase.japanese)} type="button">Copy JP</button>
-                <button onClick={() => copyText("Pronunciation", phrase.easyPronunciation)} type="button">Copy Say</button>
                 <button onClick={() => setBigPhrase(phrase)} type="button">Show Big</button>
                 <button aria-pressed={starred} onClick={() => setFavorites(starred ? favorites.filter((id) => id !== phrase.id) : [...favorites, phrase.id])} type="button">
                   {starred ? "Starred" : "Star"}
@@ -561,5 +609,26 @@ function InfoCard({ title, body }: { title: string; body: string }) {
       <strong>{title}</strong>
       <p>{body}</p>
     </article>
+  );
+}
+
+function RateChart({ points }: { points: RatePoint[] }) {
+  const rates = points.map((point) => point.rate);
+  const min = Math.min(...rates);
+  const max = Math.max(...rates);
+  const spread = Math.max(max - min, 1);
+
+  return (
+    <div className="rate-chart" aria-label="USD to JPY last week chart">
+      {points.map((point) => {
+        const height = 18 + ((point.rate - min) / spread) * 70;
+        return (
+          <div className="rate-bar" key={point.date}>
+            <span style={{ height: `${height}%` }} />
+            <small>{point.rate.toFixed(1)}</small>
+          </div>
+        );
+      })}
+    </div>
   );
 }
